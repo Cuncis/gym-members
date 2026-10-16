@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { requirePageRole } from '@/lib/guards'
+import { MANAGER_ROLES } from '@/lib/permissions'
 import { getMember } from '@/lib/members'
 import { MemberForm } from '@/components/MemberForm'
 
@@ -15,6 +17,7 @@ export default function EditMemberPage(props: { params: Promise<{ id: string }> 
 
 async function Content({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
+    await requirePageRole(MANAGER_ROLES, `/members/${id}/edit`)
     const member = await getMember(id)
     if (!member) notFound()
 

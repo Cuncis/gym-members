@@ -2,6 +2,8 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { MemberStatus } from '@prisma/client'
+import { requireSignedIn } from '@/lib/guards'
+import { can } from '@/lib/permissions'
 import { getMember } from '@/lib/members'
 import { formatDate, formatMoney } from '@/lib/format'
 import { DeleteMemberButton } from '@/components/DeleteMemberButton'
@@ -23,6 +25,12 @@ export default function MemberPage(props: { params: Promise<{ id: string }> }) {
 
 async function Content({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
+    const session = await requireSignedIn(`/members/${id}`)
+    const role = session.user.role
+
+    // A member opening someone else's profile gets a 404, the same as for an id that does not exist.
+    if (!can.viewMember(role, session.user.id, id)) notFound()
+
     const member = await getMember(id)
     if (!member) notFound()
 
@@ -32,9 +40,11 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
     return (
         <main className="mx-auto max-w-2xl p-6">
-            <Link href="/members" className="text-sm text-neutral-600 hover:underline">
-                ← Back to members
-            </Link>
+            {can.viewDirectory(role) && (
+                <Link href="/members" className="text-sm text-neutral-600 hover:underline">
+                    ← Back to members
+                </Link>
+            )}
 
             <div className="mt-4 flex items-start justify-between gap-3">
                 <h1 className="text-3xl font-bold">{member.name}</h1>
@@ -43,12 +53,18 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                 </span>
             </div>
 
-            <div className="mt-4 flex gap-2">
-                <Link href={`/members/${member.id}/edit`} className="rounded border px-3 py-1.5 text-sm">
-                    Edit
-                </Link>
-                <DeleteMemberButton id={member.id} name={member.name} />
-            </div>
+            {(can.editMembers(role) || can.deleteMember(role, session.user.id, member.id)) && (
+                <div className="mt-4 flex gap-2">
+                    {can.editMembers(role) && (
+                        <Link href={`/members/${member.id}/edit`} className="rounded border px-3 py-1.5 text-sm">
+                            Edit
+                        </Link>
+                    )}
+                    {can.deleteMember(role, session.user.id, member.id) && (
+                        <DeleteMemberButton id={member.id} name={member.name} />
+                    )}
+                </div>
+            )}
 
             <dl className="mt-6 grid gap-4 rounded-lg border border-neutral-300 p-4 sm:grid-cols-2">
                 <div>

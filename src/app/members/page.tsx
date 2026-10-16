@@ -2,6 +2,8 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { MemberStatus } from '@prisma/client'
+import { requireSignedIn } from '@/lib/guards'
+import { can } from '@/lib/permissions'
 import { listMembers } from '@/lib/members'
 import { listQuerySchema, MEMBER_STATUSES, type ListQuery } from '@/lib/validation'
 
@@ -25,6 +27,9 @@ export default function MembersPage(props: { searchParams: SearchParams }) {
 }
 
 async function Content({ searchParams }: { searchParams: SearchParams }) {
+    const session = await requireSignedIn('/members')
+    if (!can.viewDirectory(session.user.role)) redirect(`/members/${session.user.id}`)
+
     const raw = await searchParams
     const parsed = listQuerySchema.safeParse({
         page: first(raw.page),
@@ -58,9 +63,11 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
         <main className="mx-auto max-w-2xl p-6">
             <div className="flex items-center justify-between gap-3">
                 <h1 className="text-3xl font-bold">Members</h1>
-                <Link href="/members/new" className="rounded bg-black px-4 py-2 font-semibold text-white">
-                    Add member
-                </Link>
+                {can.editMembers(session.user.role) && (
+                    <Link href="/members/new" className="rounded bg-black px-4 py-2 font-semibold text-white">
+                        Add member
+                    </Link>
+                )}
             </div>
 
             <form action="/members" method="get" className="mt-6 flex flex-wrap items-end gap-3">

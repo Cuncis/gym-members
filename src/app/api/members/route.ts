@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
+import { requireApiRole } from '@/lib/guards'
+import { MANAGER_ROLES, STAFF_ROLES } from '@/lib/permissions'
 import { listMembers } from '@/lib/members'
 import { createMemberSchema, listQuerySchema } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
+    const guard = await requireApiRole(STAFF_ROLES)
+    if (!guard.ok) return guard.response
     const params = Object.fromEntries(request.nextUrl.searchParams)
     const parsed = listQuerySchema.safeParse(params)
 
@@ -19,6 +23,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const guard = await requireApiRole(MANAGER_ROLES)
+    if (!guard.ok) return guard.response
     let body: unknown
     try {
         body = await request.json()

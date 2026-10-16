@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
+import { requireApiRole } from '@/lib/guards'
+import { ADMIN_ROLES, MANAGER_ROLES } from '@/lib/permissions'
 import { db } from '@/lib/db'
 import { createMemberSchema } from '@/lib/validation'
 
@@ -7,6 +9,8 @@ type Ctx = { params: Promise<{ id: string }> }
 
 // PUT replaces all the editable fields, so the form always sends all of them.
 export async function PUT(request: NextRequest, { params }: Ctx) {
+    const guard = await requireApiRole(MANAGER_ROLES)
+    if (!guard.ok) return guard.response
     const { id } = await params
 
     let body: unknown
@@ -51,7 +55,12 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Ctx) {
+    const guard = await requireApiRole(ADMIN_ROLES)
+    if (!guard.ok) return guard.response
     const { id } = await params
+    if (id === guard.session.user.id) {
+        return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
+    }
 
     try {
         await db.user.delete({ where: { id } })

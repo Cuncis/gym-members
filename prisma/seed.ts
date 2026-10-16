@@ -1,4 +1,5 @@
 import { PrismaClient, MemberStatus } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 import { faker } from '@faker-js/faker'
 
 const prisma = new PrismaClient()
@@ -15,7 +16,33 @@ const PLANS = [
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
 
+const DEMO_PASSWORD = 'demo-password-123'
+
+const DEMO_ACCOUNTS = [
+    { name: 'Ada Admin', email: 'admin@example.com', role: 'ADMIN' },
+    { name: 'Manny Manager', email: 'manager@example.com', role: 'MANAGER' },
+    { name: 'Tina Trainer', email: 'trainer@example.com', role: 'TRAINER' },
+    { name: 'Mia Member', email: 'member@example.com', role: 'MEMBER' },
+] as const
+
+async function seedDemoAccounts() {
+    // Known passwords must never exist outside your own computer.
+    if (process.env.NODE_ENV === 'production') return
+
+    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12)
+    for (const account of DEMO_ACCOUNTS) {
+        await prisma.user.upsert({
+            where: { email: account.email },
+            // Re-running the seed also resets the role and password of these four accounts.
+            update: { role: account.role, passwordHash },
+            create: { ...account, passwordHash, status: 'ACTIVE' },
+        })
+    }
+}
+
 async function main() {
+    await seedDemoAccounts()
+
     for (let i = 0; i < 50; i++) {
         const first = faker.person.firstName()
         const last = faker.person.lastName()
