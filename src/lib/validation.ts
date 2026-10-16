@@ -22,3 +22,5 @@ export const listQuerySchema = z.object({
 })
 
 export type CreateMemberInput = z.infer<typeof createMemberSchema>
+
+export type ListQuery = z.infer<typeof listQuerySchema>

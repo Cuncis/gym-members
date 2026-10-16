@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
+import { listMembers } from '@/lib/members'
 import { createMemberSchema, listQuerySchema } from '@/lib/validation'
-
-const PAGE_SIZE = 10
 
 export async function GET(request: NextRequest) {
     const params = Object.fromEntries(request.nextUrl.searchParams)
@@ -16,33 +15,7 @@ export async function GET(request: NextRequest) {
         )
     }
 
-    const { page, q, status } = parsed.data
-
-    const where: Prisma.UserWhereInput = {
-        ...(status ? { status } : {}),
-        ...(q ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] } : {}),
-    }
-
-    // One round trip: the total count and the current page.
-    const [total, items] = await db.$transaction([
-        db.user.count({ where }),
-        db.user.findMany({
-            where,
-            // id as a tiebreaker keeps the order stable when createdAt values are equal
-            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-            skip: (page - 1) * PAGE_SIZE,
-            take: PAGE_SIZE,
-            include: { _count: { select: { memberships: true } } },
-        }),
-    ])
-
-    return NextResponse.json({
-        items,
-        page,
-        pageSize: PAGE_SIZE,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
-    })
+    return NextResponse.json(await listMembers(parsed.data))
 }
 
 export async function POST(request: NextRequest) {
@@ -65,7 +38,6 @@ export async function POST(request: NextRequest) {
         const member = await db.user.create({ data: parsed.data })
         return NextResponse.json(member, { status: 201 })
     } catch (e) {
-        // P2002 is Prisma's code for "unique constraint failed"
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
             return NextResponse.json(
                 {
