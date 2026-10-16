@@ -1,10 +1,14 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 
 type FieldErrors = Partial<Record<'name' | 'email' | 'password', string[]>>
 
 export function SignUpForm() {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    const turnstileRef = useRef<TurnstileInstance>(null)
+    const [token, setToken] = useState<string | null>(null)
     const [errors, setErrors] = useState<FieldErrors>({})
     const [formError, setFormError] = useState<string | null>(null)
     const [done, setDone] = useState(false)
@@ -21,6 +25,7 @@ export function SignUpForm() {
             name: String(data.get('name') ?? ''),
             email: String(data.get('email') ?? ''),
             password: String(data.get('password') ?? ''),
+            turnstileToken: token,
         }
 
         try {
@@ -40,6 +45,9 @@ export function SignUpForm() {
         } catch {
             setFormError('Could not reach the server. Check your connection and try again.')
         } finally {
+            // A Turnstile token works once, so every attempt needs a fresh one.
+            turnstileRef.current?.reset()
+            setToken(null)
             setSubmitting(false)
         }
     }
@@ -85,9 +93,22 @@ export function SignUpForm() {
                 />
                 {err(errors.password)}
             </div>
+
+            {siteKey ? (
+                <Turnstile
+                    ref={turnstileRef}
+                    siteKey={siteKey}
+                    onSuccess={setToken}
+                    onExpire={() => setToken(null)}
+                    onError={() => setToken(null)}
+                />
+            ) : (
+                <p role="alert" className="text-sm text-red-600">Bot check is not configured (NEXT_PUBLIC_TURNSTILE_SITE_KEY).</p>
+            )}
+
             <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !token}
                 className="rounded bg-black px-4 py-2 font-semibold text-white disabled:opacity-60"
             >
                 {submitting ? 'Creating account…' : 'Create account'}

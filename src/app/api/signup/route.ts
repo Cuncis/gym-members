@@ -4,6 +4,16 @@ import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { signUpSchema } from '@/lib/validation'
+import { verifyTurnstile } from '@/lib/turnstile'
+
+const turnstileToken =
+    typeof body === 'object' && body !== null && 'turnstileToken' in body && typeof body.turnstileToken === 'string'
+        ? body.turnstileToken
+        : undefined
+
+if (!(await verifyTurnstile(turnstileToken))) {
+    return NextResponse.json({ error: 'Verification failed. Please try again.' }, { status: 400 })
+}
 
 export async function POST(request: NextRequest) {
     let body: unknown

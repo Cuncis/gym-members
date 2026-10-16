@@ -22,21 +22,22 @@ enum Role {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String
-  email         String       @unique
-  phone         String?
-  status        MemberStatus @default(LEAD)
-  role          Role         @default(MEMBER)
-  passwordHash  String?
-  emailVerified DateTime?
-  image         String?
-  notes         String?      @db.Text
-  memberships   Membership[]
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  phone               String?
+  status              MemberStatus         @default(LEAD)
+  role                Role                 @default(MEMBER)
+  passwordHash        String?
+  emailVerified       DateTime?
+  image               String?
+  notes               String?              @db.Text
+  memberships         Membership[]
+  accounts            Account[]
+  sessions            Session[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  passwordResetTokens PasswordResetToken[]
 
   @@index([status])
   @@index([createdAt])
@@ -88,6 +89,18 @@ model Membership {
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

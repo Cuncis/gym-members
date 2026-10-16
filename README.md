@@ -47,3 +47,42 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | MEMBER | member@example.com |
 
 Password for all four: `demo-password-123`
+
+## Sign-in and roles
+
+Sign-in uses Auth.js (NextAuth v5) with email and password, plus Google when `AUTH_GOOGLE_ID` and
+`AUTH_GOOGLE_SECRET` are set. Sessions are signed cookies (JWT) that last 8 hours.
+
+### Demo accounts (development only, created by `pnpm db:seed`)
+
+| Email | Role | Password |
+| --- | --- | --- |
+| admin@example.com | ADMIN | demo-password-123 |
+| manager@example.com | MANAGER | demo-password-123 |
+| trainer@example.com | TRAINER | demo-password-123 |
+| member@example.com | MEMBER | demo-password-123 |
+
+### Who can do what
+
+| Action | ADMIN | MANAGER | TRAINER | MEMBER |
+| --- | --- | --- | --- | --- |
+| Open the members list | yes | yes | yes | no (sent to own profile) |
+| Open a member profile | any | any | any | own only |
+| Add or edit members | yes | yes | no | no |
+| Delete a member | yes (not themselves) | no | no | no |
+
+Rules live in `src/lib/permissions.ts`. They are enforced in pages and API routes; `src/proxy.ts`
+only checks that someone is signed in.
+
+### Environment variables
+
+`DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`,
+`TURNSTILE_SECRET_KEY`, `APP_URL`. See `.env.example`. The Turnstile keys in the example are Cloudflare's
+public test keys and must be replaced in production.
+
+### Known limits
+
+- A role change reaches a signed-in user only after their session expires or they sign in again.
+- Password reset links are printed to the terminal until real email is added (Project 7).
+- A password reset does not sign out sessions that already exist.
+- No rate limiting yet on sign-in, sign-up or forgot-password.

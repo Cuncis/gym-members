@@ -42,7 +42,11 @@ export default async function SignInPage({ searchParams }: { searchParams: Searc
                 </form>
             )}
 
-            <p className="mt-6 text-sm text-neutral-600">
+            <p className="mt-6 text-sm">
+                <Link href="/forgot-password" className="underline">Forgot your password?</Link>
+            </p>
+
+            <p className="mt-2 text-sm text-neutral-600">
                 No account yet?{' '}
                 <Link href="/signup" className="font-medium underline">
                     Create one
