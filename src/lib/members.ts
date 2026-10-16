@@ -29,3 +29,10 @@ export async function listMembers({ page, q, status }: ListQuery) {
         totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
     }
 }
+
+export async function getMember(id: string) {
+    return db.user.findUnique({
+        where: { id },
+        include: { memberships: { orderBy: { startDate: 'desc' } } },
+    })
+}
