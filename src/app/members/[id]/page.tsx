@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { MemberStatus } from '@prisma/client'
 import { getMember } from '@/lib/members'
 import { formatDate, formatMoney } from '@/lib/format'
+import { DeleteMemberButton } from '@/components/DeleteMemberButton'
 
 const badge: Record<MemberStatus, string> = {
     ACTIVE: 'bg-green-100 text-green-800',
@@ -11,7 +13,15 @@ const badge: Record<MemberStatus, string> = {
     LEAD: 'bg-blue-100 text-blue-800',
 }
 
-export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
+export default function MemberPage(props: { params: Promise<{ id: string }> }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const member = await getMember(id)
     if (!member) notFound()
@@ -31,6 +41,13 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
                 <span className={`rounded-full px-3 py-1 text-sm font-medium ${badge[member.status]}`}>
                     {member.status}
                 </span>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+                <Link href={`/members/${member.id}/edit`} className="rounded border px-3 py-1.5 text-sm">
+                    Edit
+                </Link>
+                <DeleteMemberButton id={member.id} name={member.name} />
             </div>
 
             <dl className="mt-6 grid gap-4 rounded-lg border border-neutral-300 p-4 sm:grid-cols-2">

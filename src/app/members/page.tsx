@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { MemberStatus } from '@prisma/client'
@@ -15,7 +16,15 @@ const badge: Record<MemberStatus, string> = {
     LEAD: 'bg-blue-100 text-blue-800',
 }
 
-export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
+export default function MembersPage(props: { searchParams: SearchParams }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading members…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ searchParams }: { searchParams: SearchParams }) {
     const raw = await searchParams
     const parsed = listQuerySchema.safeParse({
         page: first(raw.page),
@@ -47,7 +56,12 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
 
     return (
         <main className="mx-auto max-w-2xl p-6">
-            <h1 className="text-3xl font-bold">Members</h1>
+            <div className="flex items-center justify-between gap-3">
+                <h1 className="text-3xl font-bold">Members</h1>
+                <Link href="/members/new" className="rounded bg-black px-4 py-2 font-semibold text-white">
+                    Add member
+                </Link>
+            </div>
 
             <form action="/members" method="get" className="mt-6 flex flex-wrap items-end gap-3">
                 <div className="min-w-48 flex-1">
