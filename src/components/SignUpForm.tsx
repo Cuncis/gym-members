@@ -47,7 +47,7 @@ export function SignUpForm() {
     if (done) {
         return (
             <p role="status" className="mt-6 rounded border border-green-300 bg-green-50 p-4 text-green-800">
-                Account created. Signing in comes in the next steps.
+                Account created. <a href="/signin" className="font-medium underline">Sign in</a> to continue.
             </p>
         )
     }
