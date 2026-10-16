@@ -24,3 +24,13 @@ export const listQuerySchema = z.object({
 export type CreateMemberInput = z.infer<typeof createMemberSchema>
 
 export type ListQuery = z.infer<typeof listQuerySchema>
+
+export const signUpSchema = z.object({
+    name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
+    email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+    password: z
+        .string()
+        .min(8, 'Use at least 8 characters')
+        // bcrypt only reads the first 72 bytes, so longer passwords are cut off silently.
+        .refine((p) => new TextEncoder().encode(p).length <= 72, 'Use at most 72 bytes (about 72 characters)'),
+})
