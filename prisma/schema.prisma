@@ -38,6 +38,8 @@ model User {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   passwordResetTokens PasswordResetToken[]
+  classesTaught       GymClass[]           @relation("ClassTrainer")
+  bookings            GymClassBooking[]
 
   @@index([status])
   @@index([createdAt])
@@ -102,5 +104,64 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+enum BookingStatus {
+  BOOKED
+  WAITLISTED
+  CANCELLED
+}
+
+model Gym {
+  id        String   @id @default(cuid())
+  name      String
+  timeZone  String   @default("Asia/Jakarta")
+  createdAt DateTime @default(now())
+}
+
+// The template: "Morning HIIT, every Saturday at 18:30"
+model GymClass {
+  id              String             @id @default(cuid())
+  name            String
+  description     String?
+  trainerId       String?
+  trainer         User?              @relation("ClassTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+  dayOfWeek       Int // 1 = Monday ... 7 = Sunday, as seen at the gym
+  startTime       String // "18:30", local time at the gym
+  durationMinutes Int
+  capacity        Int
+  active          Boolean            @default(true)
+  instances       GymClassInstance[]
+  createdAt       DateTime           @default(now())
+
+  @@index([trainerId])
+}
+
+// One dated session: "Saturday 17 October, 18:30"
+model GymClassInstance {
+  id       String            @id @default(cuid())
+  classId  String
+  gymClass GymClass          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  startsAt DateTime // stored in UTC
+  endsAt   DateTime
+  capacity Int // copied from the template, so editing the template never changes sessions already sold
+  bookings GymClassBooking[]
+
+  @@unique([classId, startsAt])
+  @@index([startsAt])
+}
+
+model GymClassBooking {
+  id          String           @id @default(cuid())
+  instanceId  String
+  instance    GymClassInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      BookingStatus    @default(BOOKED)
+  createdAt   DateTime         @default(now())
+  cancelledAt DateTime?
+
+  @@unique([instanceId, userId])
   @@index([userId])
 }
