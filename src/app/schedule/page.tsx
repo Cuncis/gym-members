@@ -28,8 +28,10 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
             orderBy: { startsAt: 'asc' },
             include: {
                 gymClass: { select: { name: true, trainer: { select: { name: true } } } },
-                _count: { select: { bookings: { where: { status: 'BOOKED' } } } },
-                bookings: { where: { userId, status: { not: 'CANCELLED' } }, select: { id: true, status: true } },
+                bookings: {
+                    where: { userId, status: { not: 'CANCELLED' } },
+                    select: { id: true, status: true, createdAt: true },
+                },
             },
         }),
         db.gymClassBooking.findMany({
@@ -39,6 +41,38 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
             include: { instance: { select: { startsAt: true, gymClass: { select: { name: true } } } } },
         }),
     ])
+
+    // One grouped query gives every session's booked and waitlisted counts.
+    const ids = instances.map((i) => i.id)
+    const counts = ids.length
+        ? await db.gymClassBooking.groupBy({
+            by: ['instanceId', 'status'],
+            where: { instanceId: { in: ids }, status: { in: ['BOOKED', 'WAITLISTED'] } },
+            _count: { _all: true },
+        })
+        : []
+    const countOf = (instanceId: string, status: 'BOOKED' | 'WAITLISTED') =>
+        counts.find((c) => c.instanceId === instanceId && c.status === status)?._count._all ?? 0
+
+    // My place in each queue I am waiting in: people who joined before me, plus one.
+    const positions = new Map<string, number>()
+    await Promise.all(
+        instances.flatMap((s) => {
+            const mine = s.bookings[0]
+            if (!mine || mine.status !== 'WAITLISTED') return []
+            return [
+                db.gymClassBooking
+                    .count({
+                        where: {
+                            instanceId: s.id,
+                            status: 'WAITLISTED',
+                            OR: [{ createdAt: { lt: mine.createdAt } }, { createdAt: mine.createdAt, id: { lt: mine.id } }],
+                        },
+                    })
+                    .then((n) => positions.set(s.id, n + 1)),
+            ]
+        }),
+    )
 
     const byDay = new Map<string, typeof instances>()
     for (const instance of instances) {
@@ -101,7 +135,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
                                 <ul className="mt-2 space-y-2">
                                     {sessions.map((s) => {
                                         const mine = s.bookings[0] ?? null
-                                        const booked = s._count.bookings
+                                        const booked = countOf(s.id, 'BOOKED')
+                                        const waiting = countOf(s.id, 'WAITLISTED')
                                         return (
                                             <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-neutral-300 p-3">
                                                 <div>
@@ -112,12 +147,14 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
                                                     </p>
                                                     <p className="text-sm text-neutral-600">
                                                         {Math.max(s.capacity - booked, 0)} of {s.capacity} spots left
+                                                        {waiting > 0 && ` · ${waiting} on waitlist`}
                                                     </p>
                                                 </div>
                                                 <BookingButton
                                                     instanceId={s.id}
                                                     bookingId={mine?.id ?? null}
                                                     status={mine ? (mine.status as 'BOOKED' | 'WAITLISTED') : null}
+                                                    position={positions.get(s.id) ?? null}
                                                     full={booked >= s.capacity}
                                                     past={s.startsAt <= now}
                                                 />

@@ -5,7 +5,10 @@ import { bookSession } from '@/lib/bookings'
 import { requireApiRole } from '@/lib/guards'
 import { ALL_ROLES } from '@/lib/permissions'
 
-const bodySchema = z.object({ instanceId: z.string().min(1).max(100) })
+const bodySchema = z.object({
+    instanceId: z.string().min(1).max(100),
+    waitlist: z.boolean().optional(),
+})
 
 export async function POST(request: NextRequest) {
     const guard = await requireApiRole(ALL_ROLES)
@@ -24,11 +27,18 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const result = await bookSession(parsed.data.instanceId, guard.session.user.id)
+        const result = await bookSession(parsed.data.instanceId, guard.session.user.id, {
+            waitlist: parsed.data.waitlist === true,
+        })
 
         switch (result.kind) {
             case 'booked':
                 return NextResponse.json({ bookingId: result.bookingId, status: 'BOOKED' }, { status: 201 })
+            case 'waitlisted':
+                return NextResponse.json(
+                    { bookingId: result.bookingId, status: 'WAITLISTED', position: result.position },
+                    { status: 201 },
+                )
             case 'already':
                 return NextResponse.json({ bookingId: result.bookingId, status: result.status })
             case 'full':
@@ -39,7 +49,6 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Session not found' }, { status: 404 })
         }
     } catch (e) {
-        // P2003: the signed-in user was deleted while their cookie was still valid
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
             return NextResponse.json({ error: 'Your account no longer exists' }, { status: 401 })
         }

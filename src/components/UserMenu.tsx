@@ -10,7 +10,12 @@ export async function UserMenu() {
             <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-6 py-3 text-sm">
                 <div className="flex items-center gap-4">
                     <Link href="/members" className="font-semibold">Gym Members</Link>
-                    {session && can.viewClasses(session.user.role) && <Link href="/classes">Classes</Link>}
+                    {session && can.viewClasses(session.user.role) && (
+                        <>
+                            <Link href="/classes">Classes</Link>
+                            <Link href="/admin/bookings">Bookings</Link>
+                        </>
+                    )}
                     {session && <Link href="/schedule">Schedule</Link>}
                 </div>
 

@@ -20,11 +20,16 @@ export async function DELETE(_request: NextRequest, { params }: Ctx) {
     }
 
     const result = await cancelBooking(id)
-    if (result === 'closed') {
-        return NextResponse.json({ error: 'This session has already started' }, { status: 409 })
+
+    switch (result.kind) {
+        case 'cancelled':
+            // Project 7: email the people in result.promoted to tell them they got a spot.
+            return new NextResponse(null, { status: 204 })
+        case 'already_cancelled':
+            return new NextResponse(null, { status: 204 })
+        case 'closed':
+            return NextResponse.json({ error: 'This session has already started' }, { status: 409 })
+        case 'not_found':
+            return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
     }
-    if (result === 'not_found') {
-        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
-    }
-    return new NextResponse(null, { status: 204 })
 }
