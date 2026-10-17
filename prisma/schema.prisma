@@ -40,6 +40,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   classesTaught       GymClass[]           @relation("ClassTrainer")
   bookings            GymClassBooking[]
+  calendarToken       String?              @unique
 
   @@index([status])
   @@index([createdAt])

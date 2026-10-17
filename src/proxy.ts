@@ -25,6 +25,8 @@ export const config = {
         '/api/classes/:path*',
         '/schedule/:path*',
         '/api/bookings/:path*',
+        '/api/schedule/:path*',
+        '/api/calendar-token/:path*',
         '/admin/:path*',
     ],
 }

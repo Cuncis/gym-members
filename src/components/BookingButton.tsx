@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiFetch, errorMessage } from '@/lib/api-client'
 
 type Props = {
     instanceId: string
@@ -13,43 +13,40 @@ type Props = {
 }
 
 export function BookingButton({ instanceId, bookingId, status, position, full, past }: Props) {
-    const router = useRouter()
-    const [busy, setBusy] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const queryClient = useQueryClient()
 
-    async function run(request: () => Promise<Response>) {
-        setBusy(true)
-        setError(null)
-        try {
-            const res = await request()
-            if (res.ok) {
-                router.refresh()
-                return
-            }
-            const json = await res.json().catch(() => null)
-            setError(json?.error ?? 'Something went wrong. Please try again.')
-            // A 409 means the page was out of date, so reload it. A session that just filled now shows "Join waitlist".
-            if (res.status === 409) router.refresh()
-        } catch {
-            setError('Could not reach the server. Check your connection and try again.')
-        } finally {
-            setBusy(false)
-        }
-    }
+    // Success or failure, reload the schedule: a 409 usually means someone just took the last spot.
+    // Returning the promise keeps the button busy until the fresh data has arrived.
+    const reload = () => queryClient.invalidateQueries({ queryKey: ['schedule'] })
 
-    const book = (waitlist: boolean) =>
-        run(() =>
-            fetch('/api/bookings', {
+    const book = useMutation({
+        mutationFn: (waitlist: boolean) =>
+            apiFetch('/api/bookings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ instanceId, waitlist }),
             }),
-        )
+        onSettled: reload,
+    })
 
-    const cancel = () => {
+    const cancel = useMutation({
+        mutationFn: () => apiFetch(`/api/bookings/${bookingId}`, { method: 'DELETE' }),
+        onSettled: reload,
+    })
+
+    const busy = book.isPending || cancel.isPending
+    const failure = book.error ?? cancel.error
+
+    const doBook = (waitlist: boolean) => {
+        cancel.reset()
+        book.mutate(waitlist)
+    }
+
+    const doCancel = () => {
         const question = status === 'WAITLISTED' ? 'Leave the waitlist?' : 'Cancel this booking?'
         if (!window.confirm(question)) return
-        run(() => fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' }))
+        book.reset()
+        cancel.mutate()
     }
 
     if (past) return <span className="text-sm text-neutral-500">Closed</span>
@@ -64,14 +61,14 @@ export function BookingButton({ instanceId, bookingId, status, position, full, p
                     >
                         {status === 'BOOKED' ? "You're booked" : `Waitlist #${position ?? '?'}`}
                     </span>
-                    <button type="button" onClick={cancel} disabled={busy} className="rounded border px-3 py-1 text-sm disabled:opacity-60">
-                        {busy ? 'Working…' : status === 'BOOKED' ? 'Cancel' : 'Leave'}
+                    <button type="button" onClick={doCancel} disabled={busy} className="rounded border px-3 py-1 text-sm disabled:opacity-60">
+                        {cancel.isPending ? 'Working…' : status === 'BOOKED' ? 'Cancel' : 'Leave'}
                     </button>
                 </div>
             ) : full ? (
                 <button
                     type="button"
-                    onClick={() => book(true)}
+                    onClick={() => doBook(true)}
                     disabled={busy}
                     className="rounded border border-black px-3 py-1 text-sm font-semibold disabled:opacity-60"
                 >
@@ -80,14 +77,14 @@ export function BookingButton({ instanceId, bookingId, status, position, full, p
             ) : (
                 <button
                     type="button"
-                    onClick={() => book(false)}
+                    onClick={() => doBook(false)}
                     disabled={busy}
                     className="rounded bg-black px-3 py-1 text-sm font-semibold text-white disabled:opacity-60"
                 >
                     {busy ? 'Booking…' : 'Book'}
                 </button>
             )}
-            {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
+            {failure && <p role="alert" className="text-xs text-red-600">{errorMessage(failure)}</p>}
         </div>
     )
 }
