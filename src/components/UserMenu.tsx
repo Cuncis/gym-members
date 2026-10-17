@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { auth, signOut } from '@/lib/auth'
+import { can } from '@/lib/permissions'
 
 export async function UserMenu() {
     const session = await auth()
@@ -7,7 +8,10 @@ export async function UserMenu() {
     return (
         <header className="border-b border-neutral-200">
             <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-6 py-3 text-sm">
-                <Link href="/members" className="font-semibold">Gym Members</Link>
+                <div className="flex items-center gap-4">
+                    <Link href="/members" className="font-semibold">Gym Members</Link>
+                    {session && can.viewClasses(session.user.role) && <Link href="/classes">Classes</Link>}
+                </div>
 
                 {session ? (
                     <div className="flex items-center gap-3">

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { auth, googleEnabled } from '@/lib/auth'
@@ -13,7 +14,15 @@ const errorMessages: Record<string, string> = {
     AccessDenied: 'Sign-in was not allowed for this account.',
 }
 
-export default async function SignInPage({ searchParams }: { searchParams: SearchParams }) {
+export default function SignInPage({ searchParams }: { searchParams: SearchParams }) {
+    return (
+        <Suspense fallback={<main className="mx-auto max-w-md p-6" />}>
+            <SignInContent searchParams={searchParams} />
+        </Suspense>
+    )
+}
+
+async function SignInContent({ searchParams }: { searchParams: SearchParams }) {
     const raw = await searchParams
     const callbackUrl = safeRedirect(first(raw.callbackUrl))
     const errorCode = first(raw.error)

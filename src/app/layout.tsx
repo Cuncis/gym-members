@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { UserMenu } from '@/components/UserMenu'
 
 const geistSans = Geist({
@@ -26,7 +27,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
 
       <body className="min-h-full flex flex-col">
-        <UserMenu />
+        <Suspense
+          fallback={
+            <header className="border-b border-neutral-200">
+              <div className="mx-auto h-[45px] max-w-2xl px-6" />
+            </header>
+          }
+        >
+          <UserMenu />
+        </Suspense>
         {children}
       </body>
     </html>

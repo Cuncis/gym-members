@@ -45,3 +45,17 @@ export const resetPasswordSchema = z.object({
     token: z.string().min(1).max(200),
     password: passwordSchema,
 })
+export const createClassSchema = z.object({
+    name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
+    description: z
+        .string()
+        .trim()
+        .max(500, 'Description is too long')
+        .optional()
+        .transform((v) => (v === '' ? undefined : v)),
+    trainerId: z.string().min(1).optional(),
+    dayOfWeek: z.coerce.number().int().min(1, 'Choose a day').max(7, 'Choose a day'),
+    startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use the format HH:MM (24 hours)'),
+    durationMinutes: z.coerce.number().int().min(15, 'Between 15 and 240 minutes').max(240, 'Between 15 and 240 minutes'),
+    capacity: z.coerce.number().int().min(1, 'Between 1 and 200 people').max(200, 'Between 1 and 200 people'),
+})

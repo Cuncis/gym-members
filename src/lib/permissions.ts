@@ -11,4 +11,10 @@ export const can = {
     editMembers: (role: Role) => MANAGER_ROLES.includes(role),
     deleteMember: (role: Role, userId: string, memberId: string) =>
         ADMIN_ROLES.includes(role) && userId !== memberId,
+
+    viewClasses: (role: Role) => STAFF_ROLES.includes(role),
+    createClass: (role: Role) => STAFF_ROLES.includes(role),
+    // Admins and managers manage every class; a trainer manages only their own.
+    manageClass: (role: Role, userId: string, trainerId: string | null) =>
+        MANAGER_ROLES.includes(role) || (role === 'TRAINER' && trainerId === userId),
 }

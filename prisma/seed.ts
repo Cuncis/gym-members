@@ -41,6 +41,11 @@ async function seedDemoAccounts() {
 }
 
 async function main() {
+    await prisma.gym.upsert({
+        where: { id: 'main' },
+        update: {},
+        create: { id: 'main', name: 'Iron Peak Gym', timeZone: 'Asia/Jakarta' },
+    })
     await seedDemoAccounts()
 
     for (let i = 0; i < 50; i++) {
