@@ -82,3 +82,47 @@ export function formatDateTime(date: Date, timeZone: string): string {
         minute: '2-digit',
     }).format(date)
 }
+
+// 'YYYY-MM-DD' for a moment, as the gym sees the date.
+export function dateKey(date: Date, timeZone: string): string {
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
+}
+
+const DAY_MS = 86_400_000
+
+// Monday 00:00 to next Monday 00:00 at the gym, `offsetWeeks` away from the current week.
+export function weekBounds(offsetWeeks: number, now: Date, timeZone: string) {
+    const today = localDate(now, timeZone)
+    const base = new Date(Date.UTC(today.year, today.month - 1, today.day))
+    const isoWeekday = base.getUTCDay() === 0 ? 7 : base.getUTCDay()
+    const monday = new Date(base.getTime() + (offsetWeeks * 7 - (isoWeekday - 1)) * DAY_MS)
+
+    const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday.getTime() + i * DAY_MS)
+        const year = d.getUTCFullYear()
+        const month = d.getUTCMonth() + 1
+        const day = d.getUTCDate()
+        return { year, month, day, key: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` }
+    })
+
+    const nextMonday = new Date(monday.getTime() + 7 * DAY_MS)
+    return {
+        start: zonedTimeToUtc(days[0].year, days[0].month, days[0].day, 0, 0, timeZone),
+        end: zonedTimeToUtc(nextMonday.getUTCFullYear(), nextMonday.getUTCMonth() + 1, nextMonday.getUTCDate(), 0, 0, timeZone),
+        days,
+    }
+}
+
+// A calendar day has no time zone, so format it in UTC to keep the day from shifting.
+export function formatCalendarDay(d: { year: number; month: number; day: number }, withWeekday = true): string {
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        ...(withWeekday ? { weekday: 'long' as const } : {}),
+        month: 'short',
+        day: 'numeric',
+    }).format(new Date(Date.UTC(d.year, d.month - 1, d.day)))
+}
+
+export function formatTime(date: Date, timeZone: string): string {
+    return new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' }).format(date)
+}

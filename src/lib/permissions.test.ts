@@ -30,3 +30,19 @@ describe('permissions', () => {
         expect(can.deleteMember('MEMBER', 'u1', 'u2')).toBe(false)
     })
 })
+
+describe('booking permissions', () => {
+    it('lets every role book a class', () => {
+        for (const role of ['ADMIN', 'MANAGER', 'TRAINER', 'MEMBER'] as const) {
+            expect(can.bookClass(role)).toBe(true)
+        }
+    })
+
+    it('lets people cancel their own booking, and managers cancel anyone\'s', () => {
+        expect(can.cancelBooking('MEMBER', 'u1', 'u1')).toBe(true)
+        expect(can.cancelBooking('MEMBER', 'u1', 'u2')).toBe(false)
+        expect(can.cancelBooking('TRAINER', 'u1', 'u2')).toBe(false)
+        expect(can.cancelBooking('MANAGER', 'u1', 'u2')).toBe(true)
+        expect(can.cancelBooking('ADMIN', 'u1', 'u2')).toBe(true)
+    })
+})

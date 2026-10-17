@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "prisma db seed",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:concurrency": "tsx scripts/concurrency-test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

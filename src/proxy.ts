@@ -18,5 +18,12 @@ export default auth((req) => {
 })
 
 export const config = {
-    matcher: ['/members/:path*', '/api/members/:path*', '/classes/:path*', '/api/classes/:path*'],
+    matcher: [
+        '/members/:path*',
+        '/api/members/:path*',
+        '/classes/:path*',
+        '/api/classes/:path*',
+        '/schedule/:path*',
+        '/api/bookings/:path*',
+    ],
 }

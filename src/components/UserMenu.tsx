@@ -11,6 +11,7 @@ export async function UserMenu() {
                 <div className="flex items-center gap-4">
                     <Link href="/members" className="font-semibold">Gym Members</Link>
                     {session && can.viewClasses(session.user.role) && <Link href="/classes">Classes</Link>}
+                    {session && <Link href="/schedule">Schedule</Link>}
                 </div>
 
                 {session ? (

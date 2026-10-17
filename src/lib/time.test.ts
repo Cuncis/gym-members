@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { upcomingStarts, zonedTimeToUtc } from './time'
+import { dateKey, upcomingStarts, weekBounds, zonedTimeToUtc } from './time'
 
 const iso = (dates: Date[]) => dates.map((d) => d.toISOString())
 
@@ -37,5 +37,36 @@ describe('upcomingStarts', () => {
         // 18:00 UTC on Friday 16 October is already 01:00 on Saturday 17 October in Jakarta
         const now = new Date('2026-10-16T18:00:00Z')
         expect(iso(upcomingStarts({ ...base, now }))[0]).toBe('2026-10-17T11:30:00.000Z')
+    })
+})
+
+describe('dateKey', () => {
+    it('gives the date as the gym sees it', () => {
+        // 18:00 UTC on Friday 16 October is already Saturday 17 October in Jakarta
+        expect(dateKey(new Date('2026-10-16T18:00:00Z'), 'Asia/Jakarta')).toBe('2026-10-17')
+    })
+})
+
+describe('weekBounds', () => {
+    const tz = 'Asia/Jakarta'
+    const now = new Date('2026-10-17T02:11:00Z') // Saturday 17 October, 09:11 in Jakarta
+
+    it('runs Monday 00:00 to the next Monday 00:00 at the gym', () => {
+        const w = weekBounds(0, now, tz)
+        expect(w.start.toISOString()).toBe('2026-10-11T17:00:00.000Z')
+        expect(w.end.toISOString()).toBe('2026-10-18T17:00:00.000Z')
+        expect(w.days.map((d) => d.key)).toEqual([
+            '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18',
+        ])
+    })
+
+    it('moves by whole weeks', () => {
+        expect(weekBounds(1, now, tz).start.toISOString()).toBe('2026-10-18T17:00:00.000Z')
+    })
+
+    it('uses the gym date to pick the week', () => {
+        // 18:00 UTC on Sunday 18 October is already Monday 19 October in Jakarta
+        const lateSunday = new Date('2026-10-18T18:00:00Z')
+        expect(weekBounds(0, lateSunday, tz).days[0].key).toBe('2026-10-19')
     })
 })
