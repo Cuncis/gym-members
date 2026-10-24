@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:concurrency": "tsx scripts/concurrency-test.ts",
     "test:waitlist": "tsx scripts/waitlist-test.ts",
-    "seed:bookings": "tsx scripts/seed-bookings.ts"
+    "seed:bookings": "tsx scripts/seed-bookings.ts",
+    "test:billing": "tsx scripts/billing-test.ts",
+    "billing:run": "tsx scripts/billing-run.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

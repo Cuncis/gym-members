@@ -40,6 +40,54 @@ async function seedDemoAccounts() {
     }
 }
 
+async function seedBilling() {
+    const plans = [
+        {
+            id: 'plan-monthly',
+            name: 'Monthly',
+            description: 'Unlimited access, billed every month',
+            priceCents: 4900,
+            kind: 'RECURRING',
+            interval: 'MONTH',
+            durationDays: null,
+        },
+        {
+            id: 'plan-annual',
+            name: 'Annual',
+            description: 'Unlimited access, billed once a year',
+            priceCents: 49000,
+            kind: 'RECURRING',
+            interval: 'YEAR',
+            durationDays: null,
+        },
+        {
+            id: 'plan-day-pass',
+            name: 'Day pass',
+            description: 'One day of access, paid once',
+            priceCents: 1500,
+            kind: 'ONE_TIME',
+            interval: null,
+            durationDays: 1,
+        },
+    ] as const
+
+    for (const plan of plans) {
+        await prisma.membershipPlan.upsert({ where: { id: plan.id }, update: {}, create: plan })
+    }
+
+    const discounts = [
+        { code: 'WELCOME10', type: 'PERCENT', value: 10 },
+        { code: 'SAVE5', type: 'FIXED', value: 500, maxRedemptions: 3 },
+        { code: 'OLDDEAL', type: 'PERCENT', value: 20, expiresAt: new Date('2025-01-01T00:00:00Z') },
+        { code: 'BIG100', type: 'PERCENT', value: 100 },
+    ] as const
+
+    for (const discount of discounts) {
+        // update: {} so running the seed again never resets how many times a code was used
+        await prisma.discount.upsert({ where: { code: discount.code }, update: {}, create: discount })
+    }
+}
+
 async function main() {
     await prisma.gym.upsert({
         where: { id: 'main' },
@@ -47,6 +95,7 @@ async function main() {
         create: { id: 'main', name: 'Iron Peak Gym', timeZone: 'Asia/Jakarta' },
     })
     await seedDemoAccounts()
+    await seedBilling()
 
     for (let i = 0; i < 50; i++) {
         const first = faker.person.firstName()
