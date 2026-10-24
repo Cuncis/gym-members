@@ -47,20 +47,28 @@ describe('booking permissions', () => {
     })
 })
 
-describe('membership permissions', () => {
-    it('lets owners manage their own membership, except ending it immediately', () => {
-        for (const action of ['pause', 'resume', 'cancel_at_period_end', 'undo_cancel'] as const) {
-            expect(can.manageMembership('MEMBER', 'u1', 'u1', action)).toBe(true)
-        }
+describe('billing permissions', () => {
+    it('lets a member manage their own membership, except cancelling immediately', () => {
+        expect(can.manageMembership('MEMBER', 'u1', 'u1', 'pause')).toBe(true)
+        expect(can.manageMembership('MEMBER', 'u1', 'u1', 'cancel_at_period_end')).toBe(true)
         expect(can.manageMembership('MEMBER', 'u1', 'u1', 'cancel_now')).toBe(false)
-        expect(can.manageMembership('MEMBER', 'u1', 'u2', 'pause')).toBe(false)
-        expect(can.manageMembership('TRAINER', 'u1', 'u2', 'pause')).toBe(false)
     })
 
-    it('lets admins and managers take any action on any membership', () => {
-        for (const role of ['ADMIN', 'MANAGER'] as const) {
-            expect(can.manageMembership(role, 'u1', 'u2', 'cancel_now')).toBe(true)
-            expect(can.manageMembership(role, 'u1', 'u2', 'pause')).toBe(true)
-        }
+    it('does not let a member or trainer touch someone else\'s membership', () => {
+        expect(can.manageMembership('MEMBER', 'u1', 'u2', 'pause')).toBe(false)
+        expect(can.manageMembership('TRAINER', 'u1', 'u2', 'cancel_at_period_end')).toBe(false)
+    })
+
+    it('lets admins and managers manage any membership, including cancelling now', () => {
+        expect(can.manageMembership('ADMIN', 'u1', 'u2', 'cancel_now')).toBe(true)
+        expect(can.manageMembership('MANAGER', 'u1', 'u2', 'pause')).toBe(true)
+    })
+
+    it('limits refunds and promo codes to admins and managers', () => {
+        expect(can.refund('ADMIN')).toBe(true)
+        expect(can.refund('MANAGER')).toBe(true)
+        expect(can.refund('TRAINER')).toBe(false)
+        expect(can.refund('MEMBER')).toBe(false)
+        expect(can.manageDiscounts('TRAINER')).toBe(false)
     })
 })

@@ -24,8 +24,9 @@ export const can = {
     cancelBooking: (role: Role, userId: string, bookingUserId: string) =>
         userId === bookingUserId || MANAGER_ROLES.includes(role),
 
-    // Members pause, resume and schedule cancellation of their own membership;
-    // ending it immediately, or touching anyone else's, is for admins and managers.
+    // Members pause and cancel their own memberships. Cancelling immediately is for staff only.
     manageMembership: (role: Role, userId: string, ownerId: string, action: MembershipAction) =>
         MANAGER_ROLES.includes(role) || (userId === ownerId && action !== 'cancel_now'),
+    refund: (role: Role) => MANAGER_ROLES.includes(role),
+    manageDiscounts: (role: Role) => MANAGER_ROLES.includes(role),
 }
