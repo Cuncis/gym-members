@@ -405,6 +405,23 @@ async function settleDue(gateway: PaymentGateway, m: DueMembership, report: Rene
     }
 }
 
+// ---------- listing ----------
+
+// Unpaid attempts older than two hours are abandoned checkouts, not worth showing.
+const ABANDONED_AFTER_MS = 2 * 60 * 60 * 1000
+
+export async function listMyMemberships(userId: string, now = new Date()) {
+    return db.membership.findMany({
+        where: {
+            userId,
+            planId: { not: null },
+            OR: [{ status: { not: 'PENDING' } }, { createdAt: { gt: new Date(now.getTime() - ABANDONED_AFTER_MS) } }],
+        },
+        orderBy: { createdAt: 'desc' },
+        include: { payments: { orderBy: { createdAt: 'desc' }, take: 5 } },
+    })
+}
+
 // ---------- pause, resume and cancel ----------
 
 export async function changeMembership(membershipId: string, action: MembershipAction, now = new Date()) {

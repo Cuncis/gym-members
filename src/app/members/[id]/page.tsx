@@ -1,12 +1,17 @@
-import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { MemberStatus } from '@prisma/client'
-import { requireSignedIn } from '@/lib/guards'
-import { can } from '@/lib/permissions'
+import { db } from '@/lib/db'
 import { getMember } from '@/lib/members'
 import { formatDate, formatMoney } from '@/lib/format'
+import { requireSignedIn } from '@/lib/guards'
+import { can } from '@/lib/permissions'
 import { DeleteMemberButton } from '@/components/DeleteMemberButton'
+import { MembershipActions } from '@/components/MembershipActions'
+import { MembershipStatusBadge } from '@/components/MembershipStatusBadge'
+import { RefundForm } from '@/components/RefundForm'
+
+export const dynamic = 'force-dynamic'
 
 const badge: Record<MemberStatus, string> = {
     ACTIVE: 'bg-green-100 text-green-800',
@@ -15,15 +20,7 @@ const badge: Record<MemberStatus, string> = {
     LEAD: 'bg-blue-100 text-blue-800',
 }
 
-export default function MemberPage(props: { params: Promise<{ id: string }> }) {
-    return (
-        <Suspense fallback={<p className="p-6">Loading…</p>}>
-            <Content {...props} />
-        </Suspense>
-    )
-}
-
-async function Content({ params }: { params: Promise<{ id: string }> }) {
+export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const session = await requireSignedIn(`/members/${id}`)
     const role = session.user.role
@@ -34,9 +31,14 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     const member = await getMember(id)
     if (!member) notFound()
 
-    const now = new Date()
-    const isCurrent = (endDate: Date | null, startDate: Date) =>
-        startDate <= now && (endDate === null || endDate >= now)
+    const payments = await db.payment.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: { membership: { select: { planName: true } } },
+    })
+
+    const isStaff = can.editMembers(role)
 
     return (
         <main className="mx-auto max-w-2xl p-6">
@@ -48,9 +50,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
             <div className="mt-4 flex items-start justify-between gap-3">
                 <h1 className="text-3xl font-bold">{member.name}</h1>
-                <span className={`rounded-full px-3 py-1 text-sm font-medium ${badge[member.status]}`}>
-                    {member.status}
-                </span>
+                <span className={`rounded-full px-3 py-1 text-sm font-medium ${badge[member.status]}`}>{member.status}</span>
             </div>
 
             {(can.editMembers(role) || can.deleteMember(role, session.user.id, member.id)) && (
@@ -93,19 +93,51 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                         <li key={m.id} className="rounded-lg border border-neutral-300 p-4">
                             <div className="flex items-center justify-between gap-3">
                                 <p className="font-semibold">{m.planName}</p>
-                                {isCurrent(m.endDate, m.startDate) && (
-                                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                                        Current
-                                    </span>
-                                )}
+                                <MembershipStatusBadge status={m.status} />
                             </div>
                             <p className="text-sm text-neutral-600">
-                                {formatMoney(m.priceCents)} · {formatDate(m.startDate)} to{' '}
+                                {formatMoney(m.priceCents, m.currency)} · {formatDate(m.startDate)} to{' '}
                                 {m.endDate ? formatDate(m.endDate) : 'ongoing'}
+                                {m.currentPeriodEnd && m.status === 'ACTIVE' && <> · period ends {formatDate(m.currentPeriodEnd)}</>}
+                                {m.cancelAtPeriodEnd && <> · set to end</>}
                             </p>
+                            {/* Rows from before billing existed (no plan) have no actions. */}
+                            {m.planId && (
+                                <MembershipActions
+                                    id={m.id}
+                                    status={m.status}
+                                    kind={m.kind}
+                                    cancelAtPeriodEnd={m.cancelAtPeriodEnd}
+                                    staff={isStaff}
+                                />
+                            )}
                         </li>
                     ))}
                 </ul>
+            )}
+
+            {payments.length > 0 && (
+                <>
+                    <h2 className="mt-8 text-xl font-semibold">Payments ({payments.length})</h2>
+                    <ul className="mt-3 space-y-3">
+                        {payments.map((p) => {
+                            const remaining = p.amountCents - p.refundedCents
+                            return (
+                                <li key={p.id} className="rounded-lg border border-neutral-300 p-4">
+                                    <p className="font-semibold">
+                                        {formatMoney(p.amountCents, p.currency)}{' '}
+                                        <span className="font-normal text-neutral-600">for {p.membership.planName}</span>
+                                    </p>
+                                    <p className="text-sm text-neutral-600">
+                                        {formatDate(p.createdAt)} · {p.provider}
+                                        {p.refundedCents > 0 && <> · {formatMoney(p.refundedCents, p.currency)} refunded</>}
+                                    </p>
+                                    {can.refund(role) && remaining > 0 && <RefundForm paymentId={p.id} remainingCents={remaining} />}
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </>
             )}
         </main>
     )

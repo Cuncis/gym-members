@@ -17,6 +17,12 @@ export async function UserMenu() {
                         </>
                     )}
                     {session && <Link href="/schedule">Schedule</Link>}
+                    {session && (
+                        <>
+                            <Link href="/plans">Plans</Link>
+                            <Link href="/billing">Billing</Link>
+                        </>
+                    )}
                 </div>
 
                 {session ? (
