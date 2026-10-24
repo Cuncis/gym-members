@@ -46,3 +46,21 @@ describe('booking permissions', () => {
         expect(can.cancelBooking('ADMIN', 'u1', 'u2')).toBe(true)
     })
 })
+
+describe('membership permissions', () => {
+    it('lets owners manage their own membership, except ending it immediately', () => {
+        for (const action of ['pause', 'resume', 'cancel_at_period_end', 'undo_cancel'] as const) {
+            expect(can.manageMembership('MEMBER', 'u1', 'u1', action)).toBe(true)
+        }
+        expect(can.manageMembership('MEMBER', 'u1', 'u1', 'cancel_now')).toBe(false)
+        expect(can.manageMembership('MEMBER', 'u1', 'u2', 'pause')).toBe(false)
+        expect(can.manageMembership('TRAINER', 'u1', 'u2', 'pause')).toBe(false)
+    })
+
+    it('lets admins and managers take any action on any membership', () => {
+        for (const role of ['ADMIN', 'MANAGER'] as const) {
+            expect(can.manageMembership(role, 'u1', 'u2', 'cancel_now')).toBe(true)
+            expect(can.manageMembership(role, 'u1', 'u2', 'pause')).toBe(true)
+        }
+    })
+})

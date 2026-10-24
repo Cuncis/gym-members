@@ -28,5 +28,12 @@ export const config = {
         '/api/schedule/:path*',
         '/api/calendar-token/:path*',
         '/admin/:path*',
+        '/plans/:path*',
+        '/billing/:path*',
+        '/checkout/:path*',
+        '/api/checkout/:path*',
+        '/api/memberships/:path*',
+        '/api/payments/:path*',
+        '/api/discounts/:path*',
     ],
 }

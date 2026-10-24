@@ -1,4 +1,5 @@
 import type { Role } from '@prisma/client'
+import type { MembershipAction } from './billing-core'
 
 export const STAFF_ROLES: Role[] = ['ADMIN', 'MANAGER', 'TRAINER']
 export const MANAGER_ROLES: Role[] = ['ADMIN', 'MANAGER']
@@ -22,4 +23,9 @@ export const can = {
     // You cancel your own bookings; admins and managers can cancel anyone's.
     cancelBooking: (role: Role, userId: string, bookingUserId: string) =>
         userId === bookingUserId || MANAGER_ROLES.includes(role),
+
+    // Members pause, resume and schedule cancellation of their own membership;
+    // ending it immediately, or touching anyone else's, is for admins and managers.
+    manageMembership: (role: Role, userId: string, ownerId: string, action: MembershipAction) =>
+        MANAGER_ROLES.includes(role) || (userId === ownerId && action !== 'cancel_now'),
 }
