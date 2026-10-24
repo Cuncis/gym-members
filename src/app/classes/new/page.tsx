@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { getGym } from '@/lib/classes'
@@ -5,7 +6,15 @@ import { requirePageRole } from '@/lib/guards'
 import { MANAGER_ROLES, STAFF_ROLES } from '@/lib/permissions'
 import { ClassForm } from '@/components/ClassForm'
 
-export default async function NewClassPage() {
+export default function NewClassPage() {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content />
+        </Suspense>
+    )
+}
+
+async function Content() {
     const session = await requirePageRole(STAFF_ROLES, '/classes/new')
     const gym = await getGym()
 

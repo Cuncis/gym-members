@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
@@ -5,7 +6,15 @@ import { requireSignedIn } from '@/lib/guards'
 import { can } from '@/lib/permissions'
 import { DAY_NAMES } from '@/lib/time'
 
-export default async function ClassesPage() {
+export default function ClassesPage() {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content />
+        </Suspense>
+    )
+}
+
+async function Content() {
     const session = await requireSignedIn('/classes')
     const role = session.user.role
     if (!can.viewClasses(role)) redirect('/members')

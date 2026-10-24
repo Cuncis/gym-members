@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { db } from '@/lib/db'
 import { calendarUrl } from '@/lib/calendar'
 import { getGym } from '@/lib/classes'
@@ -10,7 +11,15 @@ import { ScheduleView } from '@/components/ScheduleView'
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
-export default async function SchedulePage({ searchParams }: { searchParams: SearchParams }) {
+export default function SchedulePage(props: { searchParams: SearchParams }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ searchParams }: { searchParams: SearchParams }) {
     const week = parseWeek(first((await searchParams).week))
 
     const session = await requireSignedIn(week === 0 ? '/schedule' : `/schedule?week=${week}`)

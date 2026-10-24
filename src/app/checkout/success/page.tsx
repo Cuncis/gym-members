@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
@@ -5,12 +6,18 @@ import { requireSignedIn } from '@/lib/guards'
 import { MembershipStatusBadge } from '@/components/MembershipStatusBadge'
 import { RefreshWhilePending } from '@/components/RefreshWhilePending'
 
-export const dynamic = 'force-dynamic'
-
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
-export default async function CheckoutSuccessPage({ searchParams }: { searchParams: SearchParams }) {
+export default function CheckoutSuccessPage(props: { searchParams: SearchParams }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ searchParams }: { searchParams: SearchParams }) {
     const id = first((await searchParams).m)
     const session = await requireSignedIn(id ? `/checkout/success?m=${encodeURIComponent(id)}` : '/billing')
 

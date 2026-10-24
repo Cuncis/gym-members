@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { MemberStatus } from '@prisma/client'
@@ -11,8 +12,6 @@ import { MembershipActions } from '@/components/MembershipActions'
 import { MembershipStatusBadge } from '@/components/MembershipStatusBadge'
 import { RefundForm } from '@/components/RefundForm'
 
-export const dynamic = 'force-dynamic'
-
 const badge: Record<MemberStatus, string> = {
     ACTIVE: 'bg-green-100 text-green-800',
     PAUSED: 'bg-yellow-100 text-yellow-800',
@@ -20,7 +19,15 @@ const badge: Record<MemberStatus, string> = {
     LEAD: 'bg-blue-100 text-blue-800',
 }
 
-export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
+export default function MemberPage(props: { params: Promise<{ id: string }> }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const session = await requireSignedIn(`/members/${id}`)
     const role = session.user.role

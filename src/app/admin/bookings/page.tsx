@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
@@ -10,7 +11,15 @@ import { BookingsTable, type BookingRow } from '@/components/BookingsTable'
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
-export default async function AdminBookingsPage({ searchParams }: { searchParams: SearchParams }) {
+export default function AdminBookingsPage(props: { searchParams: SearchParams }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ searchParams }: { searchParams: SearchParams }) {
     const session = await requirePageRole(STAFF_ROLES, '/admin/bookings')
     const { role, id: userId } = session.user
 

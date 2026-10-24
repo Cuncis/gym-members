@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processPaymentEvent } from '@/lib/billing'
 import { getGateway } from '@/lib/payment-gateways'
 
-export const runtime = 'nodejs'
-
 export async function POST(request: NextRequest) {
     // The signature is computed over the exact raw text, so read it as text. Never parse it first.
     const rawBody = await request.text()

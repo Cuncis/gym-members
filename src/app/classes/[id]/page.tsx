@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { db } from '@/lib/db'
@@ -7,7 +8,15 @@ import { can } from '@/lib/permissions'
 import { DAY_NAMES, formatDateTime } from '@/lib/time'
 import { GenerateInstancesButton } from '@/components/GenerateInstancesButton'
 
-export default async function ClassPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ClassPage(props: { params: Promise<{ id: string }> }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const session = await requireSignedIn(`/classes/${id}`)
     const { role, id: userId } = session.user

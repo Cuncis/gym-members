@@ -1,11 +1,10 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { listMyMemberships } from '@/lib/billing'
 import { requireSignedIn } from '@/lib/guards'
 import { formatDate, formatMoney } from '@/lib/format'
 import { MembershipActions } from '@/components/MembershipActions'
 import { MembershipStatusBadge } from '@/components/MembershipStatusBadge'
-
-export const dynamic = 'force-dynamic'
 
 type Row = {
     status: string
@@ -37,7 +36,15 @@ function describe(m: Row): string {
     }
 }
 
-export default async function BillingPage() {
+export default function BillingPage() {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content />
+        </Suspense>
+    )
+}
+
+async function Content() {
     const session = await requireSignedIn('/billing')
 
     const memberships = await listMyMemberships(session.user.id)

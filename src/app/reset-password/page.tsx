@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { ResetPasswordForm } from '@/components/ResetPasswordForm'
 
@@ -6,7 +7,15 @@ export const metadata = { referrer: 'no-referrer' as const }
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
-export default async function ResetPasswordPage({ searchParams }: { searchParams: SearchParams }) {
+export default function ResetPasswordPage(props: { searchParams: SearchParams }) {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content {...props} />
+        </Suspense>
+    )
+}
+
+async function Content({ searchParams }: { searchParams: SearchParams }) {
     const raw = (await searchParams).token
     const token = Array.isArray(raw) ? raw[0] : raw
 

@@ -1,11 +1,18 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { requireSignedIn } from '@/lib/guards'
 import { PlanPicker, type PlanDto } from '@/components/PlanPicker'
 
-export const dynamic = 'force-dynamic'
+export default function PlansPage() {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content />
+        </Suspense>
+    )
+}
 
-export default async function PlansPage() {
+async function Content() {
     await requireSignedIn('/plans')
 
     const plans = await db.membershipPlan.findMany({ where: { active: true }, orderBy: { priceCents: 'asc' } })
