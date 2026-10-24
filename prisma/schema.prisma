@@ -41,6 +41,8 @@ model User {
   classesTaught       GymClass[]           @relation("ClassTrainer")
   bookings            GymClassBooking[]
   calendarToken       String?              @unique
+  paymentCustomerId   String?              @unique
+  payments            Payment[]
 
   @@index([status])
   @@index([createdAt])
@@ -84,16 +86,33 @@ model VerificationToken {
 }
 
 model Membership {
-  id         String    @id @default(cuid())
-  planName   String
-  priceCents Int
-  startDate  DateTime
-  endDate    DateTime?
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime  @default(now())
+  id                 String           @id @default(cuid())
+  planName           String
+  priceCents         Int
+  startDate          DateTime
+  endDate            DateTime?
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId             String?
+  plan               MembershipPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
+  // kind, interval, durationDays, planName and priceCents are copied from the plan at purchase time
+  kind               MembershipKind   @default(ONE_TIME)
+  interval           BillingInterval?
+  durationDays       Int?
+  currency           String           @default("usd")
+  status             MembershipStatus @default(EXPIRED)
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean          @default(false)
+  pausedAt           DateTime?
+  paymentMethodId    String?
+  billingEvents      BillingEvent[]
+  payments           Payment[]
+  createdAt          DateTime         @default(now())
 
   @@index([userId])
+  @@index([planId])
+  @@index([status, currentPeriodEnd])
 }
 
 model PasswordResetToken {
@@ -165,4 +184,135 @@ model GymClassBooking {
 
   @@unique([instanceId, userId])
   @@index([userId])
+}
+
+enum MembershipKind {
+  RECURRING
+  ONE_TIME
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingEventKind {
+  INITIAL
+  RENEWAL
+}
+
+enum BillingEventStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+model MembershipPlan {
+  id           String           @id @default(cuid())
+  name         String
+  description  String?
+  priceCents   Int
+  currency     String           @default("usd")
+  kind         MembershipKind
+  interval     BillingInterval? // only for RECURRING plans
+  durationDays Int? // only for ONE_TIME plans
+  active       Boolean          @default(true)
+  memberships  Membership[]
+  createdAt    DateTime         @default(now())
+}
+
+model Discount {
+  id             String         @id @default(cuid())
+  code           String         @unique
+  type           DiscountType
+  value          Int // PERCENT: 1 to 100. FIXED: cents.
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  maxRedemptions Int?
+  redeemedCount  Int            @default(0)
+  active         Boolean        @default(true)
+  billingEvents  BillingEvent[]
+  createdAt      DateTime       @default(now())
+}
+
+// What is owed for one period of one membership.
+model BillingEvent {
+  id                String             @id @default(cuid())
+  membershipId      String
+  membership        Membership         @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  kind              BillingEventKind
+  status            BillingEventStatus @default(PENDING)
+  listPriceCents    Int
+  discountCents     Int                @default(0)
+  amountCents       Int // what is actually charged
+  currency          String
+  discountId        String?
+  discount          Discount?          @relation(fields: [discountId], references: [id], onDelete: SetNull)
+  periodStart       DateTime
+  periodEnd         DateTime
+  attempts          Int                @default(0) // charge attempts made by the billing engine
+  failureMessage    String?
+  providerSessionId String?
+  payment           Payment?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // The database itself refuses to bill the same period twice.
+  @@unique([membershipId, periodStart])
+  @@index([status])
+}
+
+// Money that actually moved: one row per successful charge.
+model Payment {
+  id                String       @id @default(cuid())
+  billingEventId    String       @unique
+  billingEvent      BillingEvent @relation(fields: [billingEventId], references: [id], onDelete: Cascade)
+  membershipId      String
+  membership        Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountCents       Int
+  currency          String
+  provider          String
+  providerPaymentId String       @unique
+  refundedCents     Int          @default(0)
+  refunds           Refund[]
+  createdAt         DateTime     @default(now())
+
+  @@index([userId])
+  @@index([membershipId])
+}
+
+model Refund {
+  id               String   @id @default(cuid())
+  paymentId        String
+  payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  amountCents      Int
+  providerRefundId String   @unique
+  reason           String?
+  createdById      String?
+  createdAt        DateTime @default(now())
+
+  @@index([paymentId])
+}
+
+// One row per provider event we have handled. This is what makes webhooks safe to replay.
+model WebhookEvent {
+  id          String   @id // "stripe:evt_123"
+  type        String
+  processedAt DateTime @default(now())
 }
