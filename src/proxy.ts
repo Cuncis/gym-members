@@ -35,5 +35,6 @@ export const config = {
         '/api/memberships/:path*',
         '/api/payments/:path*',
         '/api/discounts/:path*',
+        '/api/notifications/:path*',
     ],
 }

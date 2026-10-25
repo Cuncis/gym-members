@@ -29,4 +29,5 @@ export const can = {
         MANAGER_ROLES.includes(role) || (userId === ownerId && action !== 'cancel_now'),
     refund: (role: Role) => MANAGER_ROLES.includes(role),
     manageDiscounts: (role: Role) => MANAGER_ROLES.includes(role),
+    viewNotifications: (role: Role) => MANAGER_ROLES.includes(role),
 }

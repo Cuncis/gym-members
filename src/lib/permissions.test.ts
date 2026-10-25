@@ -72,3 +72,12 @@ describe('billing permissions', () => {
         expect(can.manageDiscounts('TRAINER')).toBe(false)
     })
 })
+
+describe('notification permissions', () => {
+    it('lets only admins and managers read the message log', () => {
+        expect(can.viewNotifications('ADMIN')).toBe(true)
+        expect(can.viewNotifications('MANAGER')).toBe(true)
+        expect(can.viewNotifications('TRAINER')).toBe(false)
+        expect(can.viewNotifications('MEMBER')).toBe(false)
+    })
+})

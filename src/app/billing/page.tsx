@@ -52,6 +52,9 @@ async function Content() {
     return (
         <main className="mx-auto max-w-2xl p-6">
             <h1 className="text-3xl font-bold">My billing</h1>
+            <Link href="/billing/notifications" className="mt-2 inline-block text-sm underline">
+                Notification settings
+            </Link>
 
             {memberships.length === 0 ? (
                 <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-8 text-center">

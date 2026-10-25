@@ -4,8 +4,6 @@ import { isAuthorizedCron } from '@/lib/cron-auth'
 import { getGymSettings } from '@/lib/gym-settings'
 import { dailyRunKey } from '@/lib/gym-clock'
 
-export const dynamic = 'force-dynamic'
-
 // Something outside the app (AWS EventBridge, Vercel Cron, a plain crontab) calls this every hour.
 // It does no work itself: it only decides which daily jobs are due and hands them to Inngest.
 async function handle(request: Request) {
