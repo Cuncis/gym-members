@@ -88,6 +88,14 @@ async function seedBilling() {
     }
 }
 
+async function seedGym() {
+    await prisma.gymSettings.upsert({
+        where: { id: 'gym' },
+        update: {}, // running the seed again never overwrites settings you changed
+        create: { id: 'gym', name: 'FitnessGM Demo Gym', timeZone: 'America/New_York', billingHour: 3, reminderHour: 9 },
+    })
+}
+
 async function main() {
     await prisma.gym.upsert({
         where: { id: 'main' },
@@ -96,6 +104,7 @@ async function main() {
     })
     await seedDemoAccounts()
     await seedBilling()
+    await seedGym()
 
     for (let i = 0; i < 50; i++) {
         const first = faker.person.firstName()
