@@ -17,7 +17,8 @@
     "email:preview": "tsx scripts/email-preview.ts",
     "test:jobs": "tsx scripts/jobs-test.ts",
     "jobs:trigger": "tsx --env-file=.env scripts/jobs-trigger.ts",
-    "test:tenant": "tsx --env-file=.env scripts/tenant-test.ts"
+    "test:tenant": "tsx --env-file=.env scripts/tenant-test.ts",
+    "test:tenant:features": "tsx --env-file=.env scripts/tenant-features-test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

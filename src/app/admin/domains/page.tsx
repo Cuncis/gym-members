@@ -1,12 +1,11 @@
+import { Suspense } from 'react'
 import { DomainManager } from '@/components/DomainManager'
 import { listDomains, verifyRecordName, verifyRecordValue } from '@/lib/domains'
 import { requirePageRole } from '@/lib/guards'
 import { rootHostname } from '@/lib/host'
 import { ADMIN_ROLES } from '@/lib/permissions'
 
-export const dynamic = 'force-dynamic'
-
-export default async function DomainsPage() {
+async function Content() {
     await requirePageRole(ADMIN_ROLES, '/admin/domains')
     const domains = await listDomains()
 
@@ -27,5 +26,13 @@ export default async function DomainsPage() {
                 }))}
             />
         </main>
+    )
+}
+
+export default function DomainsPage() {
+    return (
+        <Suspense fallback={<p className="p-6">Loading…</p>}>
+            <Content />
+        </Suspense>
     )
 }
