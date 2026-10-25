@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { redirect } from 'next/navigation'
 import type { Role } from '@prisma/client'
-import { auth } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 
 // For pages: sends signed-out visitors to the sign-in page, and brings them back afterwards.
 export async function requireSignedIn(returnTo: string) {
-    const session = await auth()
+    const session = await getSession()
     if (!session?.user) redirect(`/signin?callbackUrl=${encodeURIComponent(returnTo)}`)
     return session
 }
@@ -19,7 +19,7 @@ export async function requirePageRole(allowed: Role[], returnTo: string) {
 
 // For API routes: 401 means "not signed in", 403 means "signed in but not allowed".
 export async function requireApiRole(allowed: Role[]) {
-    const session = await auth()
+    const session = await getSession()
     if (!session?.user) {
         return { ok: false as const, response: NextResponse.json({ error: 'Not signed in' }, { status: 401 }) }
     }

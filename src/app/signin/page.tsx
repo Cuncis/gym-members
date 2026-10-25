@@ -1,7 +1,8 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { auth, googleEnabled } from '@/lib/auth'
+import { googleEnabled } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import { safeRedirect } from '@/lib/redirect'
 import { SignInForm } from '@/components/SignInForm'
 import { signInWithGoogle } from './actions'
@@ -27,7 +28,7 @@ async function SignInContent({ searchParams }: { searchParams: SearchParams }) {
     const callbackUrl = safeRedirect(first(raw.callbackUrl))
     const errorCode = first(raw.error)
 
-    const session = await auth()
+    const session = await getSession()
     if (session) redirect(callbackUrl)
 
     return (

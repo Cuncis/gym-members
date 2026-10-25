@@ -31,13 +31,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (!parsed.success) return null
                 const { email, password } = parsed.data
 
+                // `db` only sees the gym of this address, so an email that belongs to another gym is simply "not found".
                 const user = await db.user.findUnique({ where: { email } })
                 const matches = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH)
 
                 // The same "null" for every failure: unknown email, no password set, wrong password.
                 if (!user || !user.passwordHash || !matches) return null
 
-                return { id: user.id, name: user.name, email: user.email, image: user.image, role: user.role }
+                return { id: user.id, name: user.name, email: user.email, image: user.image, role: user.role, gymId: user.gymId }
             },
         }),
         ...(googleEnabled
@@ -63,12 +64,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (user) {
                 token.id = user.id
                 token.role = user.role
+                token.gymId = user.gymId
             }
             return token
         },
         async session({ session, token }) {
             if (token.id) session.user.id = token.id as string
             if (token.role) session.user.role = token.role as Role
+            if (token.gymId) session.user.gymId = token.gymId as string
             return session
         },
     },

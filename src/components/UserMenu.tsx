@@ -1,15 +1,17 @@
 import Link from 'next/link'
-import { auth, signOut } from '@/lib/auth'
+import { signOut } from '@/lib/auth'
+import { getSession } from '@/lib/session'
+import { getRequestGym } from '@/lib/tenant'
 import { can } from '@/lib/permissions'
 
 export async function UserMenu() {
-    const session = await auth()
+    const [session, gym] = await Promise.all([getSession(), getRequestGym()])
 
     return (
         <header className="border-b border-neutral-200">
             <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-6 py-3 text-sm">
                 <div className="flex items-center gap-4">
-                    <Link href="/members" className="font-semibold">Gym Members</Link>
+                    <Link href="/members" className="font-semibold">{gym?.name ?? 'Gym Members'}</Link>
                     {session && can.viewClasses(session.user.role) && (
                         <>
                             <Link href="/classes">Classes</Link>
