@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { getGymSettings } from '@/lib/gym-settings'
+import { getGym } from '@/lib/gym'
 import { requireSignedIn } from '@/lib/guards'
 import { can } from '@/lib/permissions'
 import { formatDateTimeInZone } from '@/lib/gym-clock'
@@ -18,7 +18,7 @@ async function Content() {
     if (!can.viewNotifications(session.user.role)) notFound()
 
     const [settings, rows, counts] = await Promise.all([
-        getGymSettings(),
+        getGym(),
         db.notification.findMany({
             orderBy: { createdAt: 'desc' },
             take: 100,

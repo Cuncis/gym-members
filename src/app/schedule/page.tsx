@@ -31,12 +31,14 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
         db.user.findUnique({ where: { id: userId }, select: { calendarToken: true } }),
     ])
 
+    const calendarLink = user?.calendarToken ? await calendarUrl(user.calendarToken) : null
+
     return (
         <main className="mx-auto max-w-2xl p-6">
             <h1 className="text-3xl font-bold">Schedule</h1>
             <p className="mt-1 text-sm text-neutral-600">All times are {gym.timeZone} time.</p>
 
-            <CalendarLink initialUrl={user?.calendarToken ? calendarUrl(user.calendarToken) : null} />
+            <CalendarLink initialUrl={calendarLink} />
 
             <ScheduleView initialWeek={week} initial={initial} />
         </main>

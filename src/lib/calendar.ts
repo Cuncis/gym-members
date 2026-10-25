@@ -1,4 +1,7 @@
-export function calendarUrl(token: string): string {
-    const base = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+import { getGym, gymBaseUrl } from '@/lib/gym'
+
+// The feed lives on the gym's own address, so the token is looked up among that gym's members only.
+export async function calendarUrl(token: string): Promise<string> {
+    const base = await gymBaseUrl(await getGym())
     return `${base}/api/calendar/${token}/calendar.ics`
 }

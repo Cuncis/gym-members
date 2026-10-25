@@ -1,4 +1,5 @@
 import { db } from '../src/lib/db'
+import { withProofGym } from '../src/lib/script-gym'
 import {
     BillingError,
     changeMembership,
@@ -365,7 +366,7 @@ async function main() {
     }
 }
 
-main().catch((e) => {
+withProofGym('billing', main).catch((e) => {
     console.error(e)
     process.exit(1)
 })

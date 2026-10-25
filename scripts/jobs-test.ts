@@ -1,4 +1,5 @@
 import { db } from '../src/lib/db'
+import { withProofGym } from '../src/lib/script-gym'
 import { processPaymentEvent, startCheckout } from '../src/lib/billing'
 import { DAY_MS } from '../src/lib/dunning'
 import { queueBillingNotices, queueReminders, renewAll, retryFailedBills } from '../src/lib/jobs'
@@ -234,7 +235,7 @@ async function main() {
     }
 }
 
-main().catch((e) => {
+withProofGym('jobs', main).catch((e) => {
     console.error(e)
     process.exit(1)
 })

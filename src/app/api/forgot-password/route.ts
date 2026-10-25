@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getGym, gymBaseUrl } from '@/lib/gym'
 import { sendPasswordResetEmail } from '@/lib/mailer'
 import { generateToken, hashToken } from '@/lib/tokens'
 import { forgotPasswordSchema } from '@/lib/validation'
@@ -37,9 +38,9 @@ export async function POST(request: NextRequest) {
             }),
         ])
 
-        // The link's address comes from your own setting, never from the request's Host header,
-        // which an attacker can fake to point the link at their own site.
-        const base = process.env.APP_URL ?? 'http://localhost:3000'
+        // The link's address is built from what we store about the gym (its subdomain or verified domain),
+        // never copied from the request's Host header, which an attacker can fake.
+        const base = await gymBaseUrl(await getGym())
         try {
             await sendPasswordResetEmail(user.email, `${base}/reset-password?token=${token}`)
         } catch (e) {

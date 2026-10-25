@@ -1,4 +1,5 @@
 import { db } from '../src/lib/db'
+import { withProofGym } from '../src/lib/script-gym'
 import { bookSession, cancelBooking, type BookResult } from '../src/lib/bookings'
 
 const idOf = (r: BookResult) => ('bookingId' in r ? r.bookingId : '')
@@ -78,7 +79,7 @@ async function main() {
     }
 }
 
-main().catch((e) => {
+withProofGym('waitlist', main).catch((e) => {
     console.error(e)
     process.exit(1)
 })

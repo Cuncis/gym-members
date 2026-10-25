@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { db } from './db'
-import { getGymSettings } from './gym-settings'
+import { getGym, gymBaseUrl } from './gym'
 import {
     CHANNELS,
     renderEmail,
@@ -69,11 +69,11 @@ export async function deliverPending(
     })
     if (due.length === 0) return report
 
-    const settings = await getGymSettings()
+    const gym = await getGym()
     const ctx: RenderContext = {
-        timeZone: settings.timeZone,
-        gymName: settings.name,
-        appUrl: process.env.APP_URL ?? 'http://localhost:3000',
+        timeZone: gym.timeZone,
+        gymName: gym.name,
+        appUrl: await gymBaseUrl(gym),
     }
 
     for (const n of due) {

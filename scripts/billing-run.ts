@@ -1,4 +1,5 @@
 import { db } from '../src/lib/db'
+import { runWithGym } from '../src/lib/script-gym'
 import { renewDue } from '../src/lib/billing'
 import { getGateway } from '../src/lib/payment-gateways'
 
@@ -15,7 +16,7 @@ async function main() {
     console.log(await renewDue(gateway, now))
 }
 
-main()
+runWithGym(main)
     .catch((e) => {
         console.error(e)
         process.exit(1)

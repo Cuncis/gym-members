@@ -22,7 +22,7 @@ export async function POST() {
         if (isMissingRow(e)) return accountGone()
         throw e
     }
-    return NextResponse.json({ url: calendarUrl(token) }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ url: await calendarUrl(token) }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
 }
 
 // Turns the link off.

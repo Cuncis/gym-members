@@ -1,5 +1,6 @@
 import { Prisma, type Discount } from '@prisma/client'
-import { db } from './db'
+import { db, lockRow, type Tx } from './db'
+import { getGym, gymBaseUrl } from './gym'
 import { formatMoney } from './format'
 import {
     applyDiscount,
@@ -12,8 +13,6 @@ import {
 } from './billing-core'
 import type { PaymentEvent, PaymentGateway } from './payment-gateways/types'
 
-type Tx = Prisma.TransactionClient
-
 export class BillingError extends Error {
     code: string
     status: number
@@ -23,11 +22,6 @@ export class BillingError extends Error {
         this.status = status
     }
 }
-
-// Locks one row until the transaction ends. Anyone else who wants the same row waits their turn.
-// `table` is one of three fixed names from our own code, never user input.
-const lockRow = (tx: Tx, table: 'BillingEvent' | 'Membership' | 'Payment', id: string) =>
-    tx.$queryRaw(Prisma.sql`SELECT id FROM ${Prisma.raw(`\`${table}\``)} WHERE id = ${id} FOR UPDATE`)
 
 const DISCOUNT_MESSAGES: Record<string, string> = {
     unknown: 'This code does not exist',
@@ -46,7 +40,8 @@ export async function quoteCheckout(planId: string, rawCode: string | undefined,
     let discount: Discount | null = null
     const code = rawCode?.trim().toUpperCase()
     if (code) {
-        const found = await db.discount.findUnique({ where: { code } })
+        // A code is unique per gym, so findFirst (which the tenant filter narrows to this gym) finds the one code.
+    const found = await db.discount.findFirst({ where: { code } })
         const check = found ? checkDiscount(found, now) : ({ ok: false, reason: 'unknown' } as const)
         if (!check.ok) throw new BillingError('DISCOUNT_INVALID', DISCOUNT_MESSAGES[check.reason], 400)
         discount = found
@@ -122,7 +117,8 @@ export async function startCheckout(
         return { membership, bill }
     })
 
-    const base = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+    // The member returns to the gym's own address, where their sign-in cookie is.
+    const base = await gymBaseUrl(await getGym())
     try {
         const checkout = await gateway.createCheckout({
             billingEventId: bill.id,

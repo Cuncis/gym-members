@@ -1,4 +1,5 @@
 import { db } from '../src/lib/db'
+import { withProofGym } from '../src/lib/script-gym'
 import { bookSession, type BookResult } from '../src/lib/bookings'
 
 const CAPACITY = 5
@@ -47,7 +48,7 @@ async function main() {
     }
 }
 
-main().catch((e) => {
+withProofGym('concurrency', main).catch((e) => {
     console.error(e)
     process.exit(1)
 })

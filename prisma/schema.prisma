@@ -23,8 +23,8 @@ enum Role {
 
 model User {
   id                  String               @id @default(cuid())
-  gymId               String?
-  gym                 Gym?                 @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId               String               @default("")
+  gym                 Gym                  @relation(fields: [gymId], references: [id], onDelete: Restrict)
   name                String
   email               String               @unique
   phone               String?
@@ -93,8 +93,8 @@ model VerificationToken {
 
 model Membership {
   id                 String           @id @default(cuid())
-  gymId              String?
-  gym                Gym?             @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId              String           @default("")
+  gym                Gym              @relation(fields: [gymId], references: [id], onDelete: Restrict)
   planName           String
   priceCents         Int
   startDate          DateTime
@@ -126,8 +126,8 @@ model Membership {
 
 model PasswordResetToken {
   id        String    @id @default(cuid())
-  gymId     String?
-  gym       Gym?      @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId     String    @default("")
+  gym       Gym       @relation(fields: [gymId], references: [id], onDelete: Restrict)
   userId    String
   tokenHash String    @unique
   expiresAt DateTime
@@ -147,7 +147,7 @@ enum BookingStatus {
 
 model Gym {
   id             String               @id @default(cuid())
-  slug           String?              @unique // the name in the address: gyma -> gyma.localhost. Required in Step 5.
+  slug           String               @unique // the name in the address: gyma -> gyma.localhost. Required in Step 5.
   name           String
   timeZone       String               @default("Asia/Jakarta")
   brandColor     String               @default("#2563eb")
@@ -185,8 +185,8 @@ model GymDomain {
 // The template: "Morning HIIT, every Saturday at 18:30"
 model GymClass {
   id              String             @id @default(cuid())
-  gymId           String?
-  gym             Gym?               @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId           String             @default("")
+  gym             Gym                @relation(fields: [gymId], references: [id], onDelete: Restrict)
   name            String
   description     String?
   trainerId       String?
@@ -206,8 +206,8 @@ model GymClass {
 // One dated session: "Saturday 17 October, 18:30"
 model GymClassInstance {
   id       String            @id @default(cuid())
-  gymId    String?
-  gym      Gym?              @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId    String            @default("")
+  gym      Gym               @relation(fields: [gymId], references: [id], onDelete: Restrict)
   classId  String
   gymClass GymClass          @relation(fields: [classId], references: [id], onDelete: Cascade)
   startsAt DateTime // stored in UTC
@@ -222,8 +222,8 @@ model GymClassInstance {
 
 model GymClassBooking {
   id          String           @id @default(cuid())
-  gymId       String?
-  gym         Gym?             @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId       String           @default("")
+  gym         Gym              @relation(fields: [gymId], references: [id], onDelete: Restrict)
   instanceId  String
   instance    GymClassInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   userId      String
@@ -274,8 +274,8 @@ enum DiscountType {
 
 model MembershipPlan {
   id           String           @id @default(cuid())
-  gymId        String?
-  gym          Gym?             @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId        String           @default("")
+  gym          Gym              @relation(fields: [gymId], references: [id], onDelete: Restrict)
   name         String
   description  String?
   priceCents   Int
@@ -292,9 +292,9 @@ model MembershipPlan {
 
 model Discount {
   id             String         @id @default(cuid())
-  gymId          String?
-  gym            Gym?           @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  code           String         @unique
+  gymId          String         @default("")
+  gym            Gym            @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  code           String
   type           DiscountType
   value          Int // PERCENT: 1 to 100. FIXED: cents.
   startsAt       DateTime?
@@ -305,14 +305,14 @@ model Discount {
   billingEvents  BillingEvent[]
   createdAt      DateTime       @default(now())
 
-  @@index([gymId])
+  @@unique([gymId, code])
 }
 
 // What is owed for one period of one membership.
 model BillingEvent {
   id                String             @id @default(cuid())
-  gymId             String?
-  gym               Gym?               @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId             String             @default("")
+  gym               Gym                @relation(fields: [gymId], references: [id], onDelete: Restrict)
   membershipId      String
   membership        Membership         @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   kind              BillingEventKind
@@ -341,8 +341,8 @@ model BillingEvent {
 // Money that actually moved: one row per successful charge.
 model Payment {
   id                String       @id @default(cuid())
-  gymId             String?
-  gym               Gym?         @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId             String       @default("")
+  gym               Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
   billingEventId    String       @unique
   billingEvent      BillingEvent @relation(fields: [billingEventId], references: [id], onDelete: Cascade)
   membershipId      String
@@ -364,8 +364,8 @@ model Payment {
 
 model Refund {
   id               String   @id @default(cuid())
-  gymId            String?
-  gym              Gym?     @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId            String   @default("")
+  gym              Gym      @relation(fields: [gymId], references: [id], onDelete: Restrict)
   paymentId        String
   payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   amountCents      Int
@@ -397,21 +397,11 @@ enum NotificationStatus {
   FAILED
 }
 
-// One row, id "gym". Project 8 turns this into one row per gym.
-model GymSettings {
-  id           String   @id @default("gym")
-  name         String   @default("My Gym")
-  timeZone     String   @default("America/New_York") // an IANA name such as "Asia/Bangkok"
-  billingHour  Int      @default(3) // local hour (0 to 23) after which the daily billing run may start
-  reminderHour Int      @default(9) // local hour after which the daily reminders may start
-  updatedAt    DateTime @updatedAt
-}
-
 // A message we promised to send. Written first, delivered afterwards: this is the "outbox".
 model Notification {
   id                String              @id @default(cuid())
-  gymId             String?
-  gym               Gym?                @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  gymId             String              @default("")
+  gym               Gym                 @relation(fields: [gymId], references: [id], onDelete: Restrict)
   userId            String
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel           NotificationChannel

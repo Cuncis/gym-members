@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker'
 import { db } from '../src/lib/db'
+import { runWithGym } from '../src/lib/script-gym'
 import { bookSession, cancelBooking, type BookResult } from '../src/lib/bookings'
 
 async function main() {
@@ -37,7 +38,7 @@ async function main() {
     console.log(`Tried ${attempts} bookings across ${sessions.length} sessions. Bookings in the database: ${total}`)
 }
 
-main()
+runWithGym(main)
     .catch((e) => {
         console.error(e)
         process.exit(1)

@@ -1,5 +1,5 @@
-import { Prisma, type BookingStatus } from '@prisma/client'
-import { db } from './db'
+import type { BookingStatus } from '@prisma/client'
+import { db, lockRow, type Tx } from './db'
 
 export type BookResult =
     | { kind: 'booked'; bookingId: string }
@@ -13,7 +13,7 @@ type Existing = { id: string } | null
 
 // One row per person per session: someone who cancelled and returns reuses their old row.
 function saveEntry(
-    tx: Prisma.TransactionClient,
+    tx: Tx,
     existing: Existing,
     instanceId: string,
     userId: string,
@@ -35,10 +35,8 @@ export async function bookSession(
     return db.$transaction(
         async (tx): Promise<BookResult> => {
             // Lock this one session's row: everyone else booking or cancelling it waits their turn.
-            const locked = await tx.$queryRaw<{ id: string }[]>(
-                Prisma.sql`SELECT id FROM \`GymClassInstance\` WHERE id = ${instanceId} FOR UPDATE`,
-            )
-            if (locked.length === 0) return { kind: 'not_found' }
+            // lockRow only finds rows of the current gym, so another gym's session looks like it does not exist.
+            if (!(await lockRow(tx, 'GymClassInstance', instanceId))) return { kind: 'not_found' }
 
             const instance = await tx.gymClassInstance.findUniqueOrThrow({
                 where: { id: instanceId },
@@ -85,7 +83,7 @@ export async function cancelBooking(bookingId: string, now = new Date()): Promis
 
     return db.$transaction(
         async (tx): Promise<CancelResult> => {
-            await tx.$queryRaw(Prisma.sql`SELECT id FROM \`GymClassInstance\` WHERE id = ${instanceId} FOR UPDATE`)
+            await lockRow(tx, 'GymClassInstance', instanceId)
 
             // Read again now that we hold the lock: the booking may have changed while we waited.
             const booking = await tx.gymClassBooking.findUnique({
