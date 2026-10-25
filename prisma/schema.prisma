@@ -23,6 +23,8 @@ enum Role {
 
 model User {
   id                  String               @id @default(cuid())
+  gymId               String?
+  gym                 Gym?                 @relation(fields: [gymId], references: [id], onDelete: Restrict)
   name                String
   email               String               @unique
   phone               String?
@@ -49,6 +51,7 @@ model User {
 
   @@index([status])
   @@index([createdAt])
+  @@index([gymId])
 }
 
 model Account {
@@ -90,6 +93,8 @@ model VerificationToken {
 
 model Membership {
   id                 String           @id @default(cuid())
+  gymId              String?
+  gym                Gym?             @relation(fields: [gymId], references: [id], onDelete: Restrict)
   planName           String
   priceCents         Int
   startDate          DateTime
@@ -116,10 +121,13 @@ model Membership {
   @@index([userId])
   @@index([planId])
   @@index([status, currentPeriodEnd])
+  @@index([gymId])
 }
 
 model PasswordResetToken {
   id        String    @id @default(cuid())
+  gymId     String?
+  gym       Gym?      @relation(fields: [gymId], references: [id], onDelete: Restrict)
   userId    String
   tokenHash String    @unique
   expiresAt DateTime
@@ -128,6 +136,7 @@ model PasswordResetToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([gymId])
 }
 
 enum BookingStatus {
@@ -137,15 +146,47 @@ enum BookingStatus {
 }
 
 model Gym {
-  id        String   @id @default(cuid())
-  name      String
-  timeZone  String   @default("Asia/Jakarta")
-  createdAt DateTime @default(now())
+  id             String               @id @default(cuid())
+  slug           String?              @unique // the name in the address: gyma -> gyma.localhost. Required in Step 5.
+  name           String
+  timeZone       String               @default("Asia/Jakarta")
+  brandColor     String               @default("#2563eb")
+  billingHour    Int                  @default(3)
+  reminderHour   Int                  @default(9)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @default(now()) @updatedAt
+  users          User[]
+  memberships    Membership[]
+  plans          MembershipPlan[]
+  discounts      Discount[]
+  billingEvents  BillingEvent[]
+  payments       Payment[]
+  refunds        Refund[]
+  notifications  Notification[]
+  classes        GymClass[]
+  classInstances GymClassInstance[]
+  classBookings  GymClassBooking[]
+  passwordResets PasswordResetToken[]
+  domains        GymDomain[]
+}
+
+model GymDomain {
+  id          String    @id @default(cuid())
+  gymId       String
+  gym         Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  hostname    String    @unique
+  verifyToken String
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([gymId])
 }
 
 // The template: "Morning HIIT, every Saturday at 18:30"
 model GymClass {
   id              String             @id @default(cuid())
+  gymId           String?
+  gym             Gym?               @relation(fields: [gymId], references: [id], onDelete: Restrict)
   name            String
   description     String?
   trainerId       String?
@@ -159,11 +200,14 @@ model GymClass {
   createdAt       DateTime           @default(now())
 
   @@index([trainerId])
+  @@index([gymId])
 }
 
 // One dated session: "Saturday 17 October, 18:30"
 model GymClassInstance {
   id       String            @id @default(cuid())
+  gymId    String?
+  gym      Gym?              @relation(fields: [gymId], references: [id], onDelete: Restrict)
   classId  String
   gymClass GymClass          @relation(fields: [classId], references: [id], onDelete: Cascade)
   startsAt DateTime // stored in UTC
@@ -173,10 +217,13 @@ model GymClassInstance {
 
   @@unique([classId, startsAt])
   @@index([startsAt])
+  @@index([gymId])
 }
 
 model GymClassBooking {
   id          String           @id @default(cuid())
+  gymId       String?
+  gym         Gym?             @relation(fields: [gymId], references: [id], onDelete: Restrict)
   instanceId  String
   instance    GymClassInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   userId      String
@@ -187,6 +234,7 @@ model GymClassBooking {
 
   @@unique([instanceId, userId])
   @@index([userId])
+  @@index([gymId])
 }
 
 enum MembershipKind {
@@ -226,6 +274,8 @@ enum DiscountType {
 
 model MembershipPlan {
   id           String           @id @default(cuid())
+  gymId        String?
+  gym          Gym?             @relation(fields: [gymId], references: [id], onDelete: Restrict)
   name         String
   description  String?
   priceCents   Int
@@ -236,10 +286,14 @@ model MembershipPlan {
   active       Boolean          @default(true)
   memberships  Membership[]
   createdAt    DateTime         @default(now())
+
+  @@index([gymId])
 }
 
 model Discount {
   id             String         @id @default(cuid())
+  gymId          String?
+  gym            Gym?           @relation(fields: [gymId], references: [id], onDelete: Restrict)
   code           String         @unique
   type           DiscountType
   value          Int // PERCENT: 1 to 100. FIXED: cents.
@@ -250,11 +304,15 @@ model Discount {
   active         Boolean        @default(true)
   billingEvents  BillingEvent[]
   createdAt      DateTime       @default(now())
+
+  @@index([gymId])
 }
 
 // What is owed for one period of one membership.
 model BillingEvent {
   id                String             @id @default(cuid())
+  gymId             String?
+  gym               Gym?               @relation(fields: [gymId], references: [id], onDelete: Restrict)
   membershipId      String
   membership        Membership         @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   kind              BillingEventKind
@@ -277,11 +335,14 @@ model BillingEvent {
   // The database itself refuses to bill the same period twice.
   @@unique([membershipId, periodStart])
   @@index([status])
+  @@index([gymId])
 }
 
 // Money that actually moved: one row per successful charge.
 model Payment {
   id                String       @id @default(cuid())
+  gymId             String?
+  gym               Gym?         @relation(fields: [gymId], references: [id], onDelete: Restrict)
   billingEventId    String       @unique
   billingEvent      BillingEvent @relation(fields: [billingEventId], references: [id], onDelete: Cascade)
   membershipId      String
@@ -298,10 +359,13 @@ model Payment {
 
   @@index([userId])
   @@index([membershipId])
+  @@index([gymId])
 }
 
 model Refund {
   id               String   @id @default(cuid())
+  gymId            String?
+  gym              Gym?     @relation(fields: [gymId], references: [id], onDelete: Restrict)
   paymentId        String
   payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   amountCents      Int
@@ -311,6 +375,7 @@ model Refund {
   createdAt        DateTime @default(now())
 
   @@index([paymentId])
+  @@index([gymId])
 }
 
 // One row per provider event we have handled. This is what makes webhooks safe to replay.
@@ -345,6 +410,8 @@ model GymSettings {
 // A message we promised to send. Written first, delivered afterwards: this is the "outbox".
 model Notification {
   id                String              @id @default(cuid())
+  gymId             String?
+  gym               Gym?                @relation(fields: [gymId], references: [id], onDelete: Restrict)
   userId            String
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel           NotificationChannel
@@ -362,4 +429,5 @@ model Notification {
 
   @@index([status, nextAttemptAt])
   @@index([userId])
+  @@index([gymId])
 }
