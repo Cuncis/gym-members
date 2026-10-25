@@ -16,7 +16,8 @@
     "billing:run": "tsx scripts/billing-run.ts",
     "email:preview": "tsx scripts/email-preview.ts",
     "test:jobs": "tsx scripts/jobs-test.ts",
-    "jobs:trigger": "tsx --env-file=.env scripts/jobs-trigger.ts"
+    "jobs:trigger": "tsx --env-file=.env scripts/jobs-trigger.ts",
+    "backfill:gym": "tsx --env-file=.env scripts/backfill-gym.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
