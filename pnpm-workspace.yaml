@@ -3,6 +3,7 @@ allowBuilds:
   '@prisma/engines': true
   esbuild: true
   prisma: true
+  protobufjs: false
   sharp: false
   unrs-resolver: false
 minimumReleaseAgeExclude:
